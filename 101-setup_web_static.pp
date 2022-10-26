@@ -1,62 +1,15 @@
-# Script that configures Nginx server with some folders and files
-
-exec {'update':
-  provider => shell,
-  command  => 'sudo apt-get -y update',
-  before   => Exec['install Nginx'],
-}
-
-exec {'install Nginx':
-  provider => shell,
-  command  => 'sudo apt-get -y install nginx',
-  before   => Exec['start Nginx'],
-}
-
-exec {'start Nginx':
-  provider => shell,
-  command  => 'sudo service nginx start',
-  before   => Exec['create first directory'],
-}
-
-exec {'create first directory':
-  provider => shell,
-  command  => 'sudo mkdir -p /data/web_static/releases/test/',
-  before   => Exec['create second directory'],
-}
-
-exec {'create second directory':
-  provider => shell,
-  command  => 'sudo mkdir -p /data/web_static/shared/',
-  before   => Exec['content into html'],
-}
-
-exec {'content into html':
-  provider => shell,
-  command  => 'echo "Holberton School" | sudo tee /data/web_static/releases/test/index.html',
-  before   => Exec['symbolic link'],
-}
-
-exec {'symbolic link':
-  provider => shell,
-  command  => 'sudo ln -sf /data/web_static/releases/test/ /data/web_static/current',
-  before   => Exec['put location'],
-}
-
-exec {'put location':
-  provider => shell,
-  command  => 'sudo sed -i \'38i\\tlocation /hbnb_static/ {\n\t\talias /data/web_static/current/;\n\t\tautoindex off;\n\t}\n\' /etc/nginx/sites-available/default',
-  before   => Exec['restart Nginx'],
-}
-
-exec {'restart Nginx':
-  provider => shell,
-  command  => 'sudo service nginx restart',
-  before   => File['/data/']
-}
-
-file {'/data/':
-  ensure  => directory,
-  owner   => 'ubuntu',
-  group   => 'ubuntu',
-  recurse => true,
-}
+# Redoing task 0: Installs nginx and configures server
+exec { '/usr/bin/env apt-get -y update' : }
+-> exec { '/usr/bin/env apt-get -y install nginx' : }
+-> exec { '/usr/bin/env sed -i "/listen \[::\]:80 default_server/ a\\\trewrite ^/redirect_me http://www.holbertonschool.com permanent;" /etc/nginx/sites-available/default' : }
+-> exec { '/usr/bin/env sed -i "/listen \[::\]:80 default_server/ a\\\tadd_header X-Served-By \"\$HOSTNAME\";" /etc/nginx/sites-available/default' : }
+-> exec { '/usr/bin/env sed -i "/redirect_me/ a\\\terror_page 404 /custom_404.html;" /etc/nginx/sites-available/default' : }
+-> exec { '/usr/bin/env # echo "Ceci n\'est pas une page" > /var/www/html/custom_404.html' : }
+-> exec { '/usr/bin/env service nginx start' : }
+-> exec { '/usr/bin/env mkdir -p /data/web_static/releases/test/' : }
+-> exec { '/usr/bin/env mkdir -p /data/web_static/shared/' : }
+-> exec { '/usr/bin/env echo "Hello Holberton School!" > /data/web_static/releases/test/index.html' : }
+-> exec { '/usr/bin/env ln -sf /data/web_static/releases/test/ /data/web_static/current' : }
+-> exec { '/usr/bin/env sed -i "/^\tlocation \/ {$/ i\\\tlocation /hbnb_static {\n\t\talias /data/web_static/current/;\n\t\tautoindex off;\n}" /etc/nginx/sites-available/default' : }
+-> exec { '/usr/bin/env service nginx restart' : }
+-> exec { '/usr/bin/env chown -R ubuntu:ubuntu /data/' : }
